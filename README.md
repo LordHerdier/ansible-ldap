@@ -2,6 +2,8 @@
 
 This repository contains Ansible configurations for managing a heterogeneous server infrastructure, including LDAP authentication setup and standardized sudo configurations across multiple server categories.
 
+I also wrote a guide on setting up Authentik as an LDAP server and for integrating it into Linux [here](https://charlotte.whittleman.net/posts/linux-sso-with-authentik-and-ldap/).
+
 > **🔒 Security Note**: This is a sanitized public version with example configurations. You'll need to customize the example files with your actual infrastructure details before use.
 
 ## Overview
