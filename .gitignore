@@ -1,0 +1,40 @@
+# Actual configuration files (use .example versions instead)
+ansible.cfg
+inventory
+templates/site-sudoers.j2
+
+# Ansible generated files
+*.retry
+.ansible/
+
+# SSH keys
+*.pem
+*.key
+id_*
+*_rsa*
+*_ed25519*
+
+# Logs
+*.log
+ansible.log
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~ 

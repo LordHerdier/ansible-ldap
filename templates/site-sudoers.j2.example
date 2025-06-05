@@ -1,0 +1,157 @@
+#
+# /etc/sudoers.d/site_sudoers
+# Base "common" sudoers for the entire site.
+#
+# Permissions: 0440 (owner root, group root). Do NOT use 0444 or world-writable.
+#
+
+#===========================================================================
+# 1. Defaults – sensible global tweaks
+#===========================================================================
+
+# Don't require TTY by default (many distros set requiretty; this disables it):
+Defaults !requiretty
+
+# Preserve a clean PATH (prevent users from polluting sudo's environment)
+Defaults    secure_path = /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Timestamp timeout in minutes (how long sudo credentials stay "fresh"):
+# Setting to 5 minutes keeps you from retyping your password every time, but
+# doesn't leave a 15-minute window for others to mash "sudo" if you step away.
+Defaults    timestamp_timeout=5
+
+# Ripple up errors & set log format:
+Defaults    logfile="/var/log/sudo.log"
+Defaults    log_year,  log_host
+Defaults    log_input, log_output   # record input/output if your sudo supports it
+
+# Better security: force re-authentication for particularly dangerous commands
+# (treat /bin/passwd, /sbin/nologin, etc. as sensitive)
+Defaults    passwd_tries=3
+Defaults    badpass_message="Almost had it, bud. Wrong password."
+
+# env_keep: keep some environment variables if needed by certain tools/scripts
+Defaults    env_keep += "EDITOR VISUAL PAGER"
+
+#=========================================================================== 
+# 2. Host Aliases – if you want to group machines (optional)
+#===========================================================================
+
+# Example: group all web servers into a "WEBSERVERS" alias
+# (Ansible could template hostnames here, but adjust to your site)
+# Host_Alias   WEBSERVERS = web01, web02, web03
+# Host_Alias   DBSERVERS = db01, db02
+Host_Alias   PROXMOXSERVERS = pve-host1, pve-host2
+Host_Alias   NETSERVERS     = dns-server, vpn-server, proxy-server, wireguard-server, reverse-proxy, fog-server, file-server
+Host_Alias   GAMESERVERS    = game-server1, game-panel-server, game-wings-server, amp-server
+Host_Alias   DEVSERVERS     = dev-workstation, dev-server1
+Host_Alias   MEDIASERVERS   = media-server
+Host_Alias   TESTINGSERVERS = test-server1, test-server2, test-server3, terraform-server1, terraform-server2, terraform-server3
+Host_Alias   ORCHSERVERS    = orchestrator1, orchestrator-local, container-mgmt
+Host_Alias   WEBSERVERS     = web-server1
+Host_Alias   SECURESERVERS  = vault-server
+Host_Alias   HOMESERVERS    = home-automation
+
+#=========================================================================== 
+# 3. User Aliases – logical groups of users
+#===========================================================================
+
+# ITADMINS are full-blown sysadmins. Replace with your actual admin user names.
+User_Alias   ITADMINS   = admin1, admin2
+
+# DEVELS group: developers who need to restart services or edit certain confs
+User_Alias   DEVELS     = dev1, dev2
+
+#=========================================================================== 
+# 4. Runas Aliases – control which users root can "become"
+#===========================================================================
+
+# Usually you only need to run as root or as a dedicated service user
+Runas_Alias  OP = root, adm, operator
+
+#=========================================================================== 
+# 5. Cmnd Aliases – group commands into logical buckets
+#===========================================================================
+
+# Package management (apt/yum/dnf/zypper/pacman/etc.)
+Cmnd_Alias   PKG_MGMT  = /usr/bin/apt-get, /usr/bin/apt, /usr/bin/yum, \
+                         /usr/bin/dnf, /usr/bin/zypper, /usr/bin/pacman
+
+# Service restarts (systemctl & service scripts)
+Cmnd_Alias   SERVICE   = /usr/bin/systemctl restart *, \
+                         /usr/bin/systemctl stop *, \
+                         /usr/bin/systemctl start *, \
+                         /usr/sbin/service * restart, \
+                         /usr/sbin/service * stop, \
+                         /usr/sbin/service * start
+
+# Network troubleshooting (ping, traceroute, netstat, tcpdump – trust at your peril)
+Cmnd_Alias   NET_TOOLS = /bin/ping, /usr/sbin/traceroute, /usr/bin/netstat, \
+                         /usr/bin/tcpdump
+
+# Log viewing (tail, less, journalctl)
+Cmnd_Alias   LOGS      = /usr/bin/tail, /usr/bin/less, /usr/bin/journalctl
+
+# Example: editing specific configuration files
+#Cmnd_Alias   EDIT_CONF = /usr/bin/vim /etc/nginx/nginx.conf, \
+#                         /usr/bin/vim /etc/apache2/apache2.conf
+
+# Docker management
+Cmnd_Alias  DOCKER = /bin/docker
+
+#=========================================================================== 
+# 6. Defaults for Specific User/Group
+#===========================================================================
+
+# ITADMINS get passwordless sudo for most things (because they ~deserve~ it)
+#Defaults:ITADMINS    !authenticate  # Nah they need a second to think about what they're actually running
+
+# For DEVELS, require a password but don't log input/output (less paranoid)
+#Defaults:DEVELS      !log_input, !log_output
+
+#=========================================================================== 
+# 7. User/Group Permissions
+#===========================================================================
+
+# ITADMINS: full sudo access on all hosts (can run ANY command as any user)
+ITADMINS       ALL = (ALL:ALL)  PASSWD: ALL
+
+# DEVELS: can restart services, manage packages, and view logs, but nothing else
+DEVELS         ALL = (OP)       PASSWD: PKG_MGMT, SERVICE, LOGS
+
+# Note: "ALL = (OP) PASSWD: PKG_MGMT, SERVICE, LOGS" means they can sudo
+# as any user in OP (i.e. root, adm, operator), but they must type their password.
+
+# If you want a group by GID or Unix group "sysadmin":
+# %sysadmin    ALL = (ALL:ALL) NOPASSWD: ALL
+
+#=========================================================================== 
+# 8. Aliases for CMDs That Always Require A Password
+#===========================================================================
+
+# Force anyone (even ITADMINS) to re-auth when messing with shadow or ssh:
+Cmnd_Alias   SENSITIVE = /usr/bin/passwd [A-Za-z]*, \
+                         /usr/sbin/useradd, \
+                         /usr/sbin/usermod, \
+                         /usr/bin/ssh-copy-id
+
+# Block "ITADMINS ALL = NOPASSWD: ALL" from bypassing these:
+ITADMINS      ALL = (ALL:ALL) ALL, !SENSITIVE
+
+#=========================================================================== 
+# 9. Defaults Cleanup (Optional)
+#===========================================================================
+
+# If you want to disable !visiblepw: some distros disallow sudo from reading
+# passwords if stdin isn't a real TTY. Only un-comment if you run into issues.
+# Defaults !visiblepw
+
+#=========================================================================== 
+# 10. Include Other Files (Optional)
+#===========================================================================
+
+# If you have host-specific or role-specific overrides:
+# #includedir /etc/sudoers.d/hosts
+# #includedir /etc/sudoers.d/roles
+
+# End of file 

@@ -1,0 +1,101 @@
+---
+- name: Configure Debian/Ubuntu clients to use LDAP authentication (with backups)
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    ldap_packages:
+      - libpam-ldapd
+      - libnss-ldapd
+      - libpam-modules
+
+    # List of files to back up (remote paths):
+    config_paths:
+      - /etc/pam.d/common-account
+      - /etc/pam.d/common-auth
+      - /etc/pam.d/common-session
+      - /etc/nslcd.conf
+      - /etc/nsswitch.conf
+
+  tasks:
+
+    - name: Refresh apt cache (no stale packages, please)
+      apt:
+        update_cache: yes
+
+    - name: Install LDAP client packages
+      apt:
+        name: "{{ ldap_packages }}"
+        state: present
+
+    - name: Stat existing config files to see what we need to back up
+      stat:
+        path: "{{ item }}"
+      loop: "{{ config_paths }}"
+      register: config_stats
+
+    - name: Backup any existing config files (timestamped .bak)
+      copy:
+        src: "{{ item.stat.path }}"
+        dest: "{{ item.stat.path }}.bak.{{ ansible_date_time.iso8601 }}"
+        owner: root
+        group: root
+        mode: '0644'
+        remote_src: yes
+      loop: "{{ config_stats.results }}"
+      when: item.stat.exists
+      # If the file wasn’t there, skip. If it was, we now have /etc/whatever.bak.2025-06-04T09:15:27Z
+
+    - name: Copy PAM common-account
+      copy:
+        src: common-account
+        dest: /etc/pam.d/common-account
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy PAM common-auth
+      copy:
+        src: common-auth
+        dest: /etc/pam.d/common-auth
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy PAM common-session
+      copy:
+        src: common-session
+        dest: /etc/pam.d/common-session
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy nslcd configuration
+      copy:
+        src: nslcd.conf
+        dest: /etc/nslcd.conf
+        owner: root
+        group: root
+        mode: '0640'
+      notify: Restart nslcd
+
+    - name: Copy nsswitch.conf
+      copy:
+        src: nsswitch.conf
+        dest: /etc/nsswitch.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable and start nslcd service
+      service:
+        name: nslcd
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: Restart nslcd
+      service:
+        name: nslcd
+        state: restarted

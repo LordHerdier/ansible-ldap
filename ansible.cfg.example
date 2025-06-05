@@ -1,0 +1,16 @@
+[defaults]
+inventory = ./inventory
+host_key_checking = False
+retry_files_enabled = False
+private_key_file = ~/.ssh/id_ed25519
+
+# Uncomment and adjust these settings as needed:
+# timeout = 10
+# remote_user = root
+# ask_pass = False
+# ask_sudo_pass = False
+
+[ssh_connection]
+# Optional: adjust SSH connection settings
+# ssh_args = -o ControlMaster=auto -o ControlPersist=60s
+# pipelining = True 

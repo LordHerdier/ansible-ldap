@@ -1,0 +1,57 @@
+[proxmoxservers]
+pve-host1  ansible_host=10.0.1.10
+pve-host2  ansible_host=10.0.1.11
+
+[netservers]
+dns-server         ansible_host=10.0.1.20
+vpn-server         ansible_host=10.0.1.21
+proxy-server       ansible_host=10.0.1.22
+wireguard-server   ansible_host=10.0.1.23
+reverse-proxy      ansible_host=10.0.1.24
+fog-server         ansible_host=10.0.1.25
+file-server        ansible_host=10.0.1.26
+
+[gameservers]
+game-server1       ansible_host=10.0.1.30
+#game-panel-server
+#game-wings-server       
+#amp-server         ansible_host=10.0.1.31
+
+[devservers]
+dev-workstation    ansible_host=10.0.1.40
+dev-server1        ansible_host=10.0.1.41
+
+[mediaservers]
+media-server       ansible_host=10.0.1.50
+
+#[testingservers]
+#ldap-test          ansible_host=ldap-test.lab.example.com
+#ldap-test2         ansible_host=10.0.2.10
+#test-server1       ansible_host=10.0.2.11
+#test-server2
+#test-server3
+#terraform-server1
+#terraform-server2
+#terraform-server3
+
+[orchservers]
+orchestrator1      ansible_host=10.0.2.20
+#orchestrator-local
+#container-mgmt
+
+#[webservers]
+#web-server1
+
+#[secureservers]
+#vault-server
+
+#[homeservers]
+#home-automation
+
+# If you ever want "all" to literally mean all groups:
+[all:vars]
+ansible_user=root
+ansible_become=yes
+ansible_become_method=sudo
+
+# You can also override become password, SSH key, etc. here if needed. 

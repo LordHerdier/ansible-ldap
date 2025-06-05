@@ -1,0 +1,30 @@
+---
+- name: Deploy base sudoers (and make sure sudo exists)
+  hosts: all
+  become: true
+  vars:
+    sudoers_dest: "/etc/sudoers.d/site_sudoers"
+
+  tasks:
+    - name: Ensure 'sudo' package is installed
+      package:
+        name: sudo
+        state: present
+      # We don't care if it was already there or not; Ansible will
+      # report "ok" if sudo's already installed, or "changed" if it just grabbed it.
+
+    - name: Copy site-wide sudoers template
+      template:
+        src: "site-sudoers.j2"
+        dest: "{{ sudoers_dest }}"
+        owner: root
+        group: root
+        mode: "0440"
+      notify: Validate sudoers syntax
+
+  handlers:
+    - name: Validate sudoers syntax
+      command: visudo -cqf {{ sudoers_dest }}
+      register: visudo_check
+      changed_when: false
+      failed_when: visudo_check.rc != 0
